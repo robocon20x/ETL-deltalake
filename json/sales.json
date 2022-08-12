@@ -1,0 +1,15 @@
+{
+    "spark_conf": {
+        "master":"local[*]",
+        "app_name":"sales_etl"
+
+    },
+    "config":{
+        "deltalake":true
+    }
+    ,
+    "log":{ 
+        "level":null
+        
+    }
+}
