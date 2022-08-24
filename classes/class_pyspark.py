@@ -8,7 +8,6 @@ from typing import Any, Callable, Optional
 from pyspark.sql.dataframe import DataFrame
 from pyspark.sql import SparkSession
 
-from delta import configure_spark_with_delta_pip
 
 # end::import[]
 
@@ -20,7 +19,8 @@ class Sparkclass:
     def __init__(self, config:dict):
         self.config = config
         self.debug_dir = "/home/duonglt/study/ETL/etl-pyspark-datyrlab/tmp"
-        self.
+        self.config_paths = (f"{self.debug_dir}/config", f"{self.debug_dir}/config/sparkSession.json")
+
     # end::init[]
 
     # tag::sparkStart[]
@@ -38,6 +38,8 @@ class Sparkclass:
             
             def configDeltalake(builder:SparkSession.Builder, config:dict) -> SparkSession.Builder:
                 if isinstance(builder, SparkSession.Builder) and config.get('deltalake') == True:
+                    
+                    from delta import configure_spark_with_delta_pip
                     builder \
                         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
                         .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
@@ -57,13 +59,13 @@ class Sparkclass:
                 if isinstance(spark, SparkSession):
                     spark.sparkContext.setLogLevel(log_level) if isinstance(log_level, str) else None 
 
-            def getSettings(spark:SparkSession) -> None:
+            def getSettings(spark:SparkSession, config_paths:tuple) -> None:
                 if isinstance(spark, SparkSession):
                     c = {}
                     c['spark.version'] = spark.version
                     c['spark.sparkContext'] = spark.sparkContext.getConf().getAll()
                     content = json.dumps(c, sort_keys=False, indent=4, default=str)
-                    Sparkclass(self.config).debugCreateFile((f"{self.debug_dir}/config", f"{self.debug_dir}/config/sparkSession.json"), content) 
+                    Sparkclass(self.config).debugCreateFile((config_paths[0], config_paths[1]), content) 
                     
             
             MASTER = kwargs.get('spark_conf', {}).get('master', 'local[*]')
@@ -74,7 +76,7 @@ class Sparkclass:
             builder = createBuilder(MASTER, APPNAME, CONFIG)
             spark = createSession(builder)
             setLogging(spark, LOG_LEVEL)
-            getSettings(spark)
+            getSettings(spark, self.config_paths)
             return spark
 
         except Exception as e:
@@ -185,27 +187,31 @@ class Sparkclass:
             add more functions for other filetypes for example, plain text files to create an RDD
             factor in text files without an extension
         """
-        def dFfromCSV(spark:SparkSession, filelist:list) -> DataFrame:
-            if isinstance(spark, SparkSession) and isinstance(filelist, list) and len(filelist) > 0:
+        def dfFromCSV(spark:SparkSession, filelist:list, filetype:str) -> DataFrame:
+            if filetype == "csv":
                 df = spark.read.format("csv") \
                     .option("header", "true")  \
                     .option("mode", "DROPMALFORMED") \
                     .load(filelist)
                 return df
         
-        def dFfromJSON(spark:SparkSession, filelist:list) -> DataFrame:
-            if isinstance(spark, SparkSession) and isinstance(filelist, list) and len(filelist) > 0:
+        def dfFromJSON(spark:SparkSession, filelist:list, filetype:str) -> DataFrame:
+            if filetype == "json" or filetype == "har":
                 df = spark.read.format("json") \
                     .option("mode", "PERMISSIVE") \
                     .option("primitivesAsString", "true") \
                     .load(filelist)
                 return df
         
-        def makeDF(filelist, filetype):
-            return dFfromCSV(spark, filelist) if filetype == "csv" else dFfromJSON(spark, filelist) if filetype == "json" else None
+        def loopFunctions(spark:SparkSession, filelist:list, filetype:str) -> list:
+            """ loop through each function - add more functions when needed """
+            if isinstance(spark, SparkSession) and isinstance(filelist, list) and len(filelist) > 0:
+                functionlist = [dfFromCSV, dfFromJSON]
+                result = list(filter(None, [f(spark, filelist, filetype) for f in functionlist] ))
+                return result[0] if len(result) > 0 else None
         
-        return makeDF(filelist, filetype)
-            
+        return loopFunctions(spark, filelist, filetype)
+    
     # end::createDataFrame[]
 
 
@@ -236,13 +242,113 @@ class Sparkclass:
 
     # tag::exportDf[]
     def exportDf(self, tupleDf:tuple) -> None:
-        if isinstance(tupleDf, tuple) and len(tupleDf) == 2 and self.config.get('export'):
-            path = f"{self.config.get('export')}/{tupleDf[1]}"
-            tupleDf[0].write.format("delta").mode("overwrite").save(path)
+        
+        def openSession(spark:SparkSession) -> dict:
+            """ returns a list of what's available in your spark session """
+            if isinstance(spark,SparkSession):
+                return spark.sparkContext.getConf().getAll()
+
+        def matchPattern(item:str, pattern:str) -> str:
+            """ returns item from a list if matches with a pattern """
+            match = re.search(pattern, item)
+            return match[0] if match else None
+            # print(f"{match}")
+
+        def loopSession(sessionlist:list, pattern:str) -> list:
+            """ loop through content of the debug sparkSession.json file to find matching dependancy"""
+            if isinstance(sessionlist, list):
+                result = list(filter(any, [[(lambda x: matchPattern(x, pattern))(x) for x in linelist] for linelist in sessionlist]))
+                return result[0] if len(result) > 0 else None
             
+        
+
+        def validateDependency(sessionlist:list, settings:dict) -> bool:
+            """ returns true or false if dependencies are met """
+            formatfound = loopSession(sessionlist, settings.get('format'))
+            # print(formatfound)
+            if settings.get('format') == "delta" and formatfound is None:
+                return False
+                # print("False")
+            return True
+            # print("True")
+
+
+        def writeExport(tupleDf:tuple) -> None:
+            if isinstance(tupleDf, tuple) and len(tupleDf) == 3:
+                spark = tupleDf[0]
+                df = tupleDf[1]
+                settings = tupleDf[2]
+
+                if validateDependency(openSession(spark), settings) == True and isinstance(df, DataFrame):
+                    if settings.get('format') == "delta":
+                        Sparkclass(self.config).exportDelta(spark, df, settings)                 
+                    else:
+                        df.write.format(settings.get('format')).mode(settings.get('mode')).save(settings.get('path'))
+                    
+        writeExport(tupleDf)
     # end::exportDf[]
 
+    # tag::exportDelta[]
+    def exportDelta(self,spark:SparkSession, df:DataFrame, settings:dict) -> None:
+        # print(f"exportDelta: {df}")
+        from delta import DeltaTable
+
+        def debugSession(spark:SparkSession):
+            c = {}
+            c['spark.version'] = spark.version
+            c['spark.sparkContext'] = spark.sparkContext.getConf().getAll()
+            content = json.dumps(c, sort_keys=False, indent=4, default=str)
+            Sparkclass(self.config).debugCreateFile((self.config_paths[0], f"{self.config_paths[0]}/exportDelta.json"), content) 
+
+
+        def tableNew(spark:SparkSession, df:DataFrame, settings:dict) -> None:
+            """create a new table"""
+            df.write.format("delta")\
+                .mode("overwrite")\
+                    .option("overwriteSchema",True)\
+                        .save(settings.get("path"))
+
+        def tableMerge(spark:SparkSession, df:DataFrame, settings:dict) -> None:
+            """merges  data with existing table - avoid duplicates"""
+            if settings.get('key') == None:
+                raise ValueError('Provide a key in your settings dict to merge tables')  
+            # spark.sql("SET spark.databricks.delta.schema.autoMerge.enabled = true")
+            # spark.sql("SET spark.databricks.delta.resolveMergeUpdateStructsByName.enabled = false")
+            # debugSession(spark)
+
+            # dt = DeltaTable.forPath(spark, settings.get('path'))
+            # dt \
+            #     .alias("t") \
+            #     .merge( \
+            #         df.alias("s"), \
+            #         f"t.{settings.get('key')} = s.{settings.get('key')}" \
+            #     ) \
+            #     .whenNotMatchedInsertAll() \
+            #     .execute()
+            if DeltaTable.isDeltaTable(spark, settings.get('path')) == True:
+                spark.sql("SET spark.databricks.delta.schema.autoMerge.enabled = true")
+                spark.sql("SET spark.databricks.delta.resolveMergeUpdateStructsByName.enabled = false")
+                debugSession(spark)
+                # print("everything is ok")
+
+
+
+
+        def tableExist(spark:SparkSession, df:DataFrame, settings:dict) -> None:
+            """ check if a path exists ...if a table should be newly created or data merged """
+            if DeltaTable.isDeltaTable(spark, settings.get('path')) == False:
+                tableNew(spark, df, settings)
+                # print("not exists")
+            else:
+                tableMerge(spark, df, settings)
+                # print("exists")
+          
+        tableExist(spark,df,settings)
     
+
+    # end::exportDelta[]
+
+
     # tag::debugCreateFile[]
     def debugCreateFile(self, paths:tuple, content:dict) -> None:
         """ creates a json file with info from a dictonary 

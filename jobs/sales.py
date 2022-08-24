@@ -14,7 +14,7 @@ from pyspark.sql.functions import col, explode
 sys.path.insert(1, project_dir)
 from classes import class_pyspark
 
-def main(project_dir:str):
+def main():
     """ starts a spark job
         second argument in importData(path, pattern) adds a regex pattern to filter file names in a directory
     """
@@ -30,7 +30,9 @@ def main(project_dir:str):
     productsDf = importData(spark, f"{project_dir}/test-data/sales/products.csv")
     
     # start transformations
-    finalDf = transformData(spark, transactionsDf, customersDf, productsDf) 
+    delta_path = f"{project_dir}/test-delta/sales"
+
+    finalDf = transformData(spark, transactionsDf, customersDf, productsDf, delta_path) 
     stopSpark(spark)
 
 def openConfig(filepath:str) -> dict:
@@ -57,11 +59,16 @@ def showMySchema(df:DataFrame, filename:str) -> None:
     if isinstance(df, DataFrame):
         class_pyspark.Sparkclass(config={}).debugDf(df, filename)
 
-def transformData(spark:SparkSession, transactionsDf:DataFrame, customersDf:DataFrame, productsDf:DataFrame) -> DataFrame:
+def transformData(spark:SparkSession, transactionsDf:DataFrame, customersDf:DataFrame, productsDf:DataFrame, path:str) -> DataFrame:
     """ call your custom functions to tranform your data """
-    df = createTempTables(spark, [ (cleanTransactions(transactionsDf), "transactions"), (cleanCustomers(customersDf), "customers"), (cleanProducts(productsDf), "products") ])
-    #exportResult(spark, [ (cleanTransactions(transactionsDf), "transactions"), (cleanCustomers(customersDf), "customers"), (cleanProducts(productsDf), "products") ])
-    
+    exportResult([ \
+        (spark, cleanTransactions(transactionsDf), {"format":"delta", "path":f"{path}/transactions", "key":"customer_id"}), \
+        (spark, cleanCustomers(customersDf), {"format":"delta", "path":f"{path}/customers", "key":"customer_id"}), \
+        (spark, cleanProducts(productsDf), {"format":"delta", "path":f"{path}/products", "key":"product_id"}) \
+    ])
+   
+
+
 def cleanTransactions(df:DataFrame) -> DataFrame:
     """ custom function - flatten nested columns and cast column types"""
     if isinstance(df, DataFrame):
@@ -94,11 +101,11 @@ def createTempTables(spark:SparkSession, listOfDf:list) -> None:
     c = [(lambda x: class_pyspark.Sparkclass(config={}).createTempTables(x)) (x) for x in listOfDf]
     d = [(lambda x: class_pyspark.Sparkclass(config={}).debugTables(x)) (x) for x in spark.catalog.listTables()]
     
-def exportResult(spark:SparkSession, listOfDf:list) -> None:
+def exportResult(listOfDf:list) -> None:
     """ input is a list of tuples (dataframe, "tablename"), write to various file formats including delta lake tables """
-    c = [(lambda x: class_pyspark.Sparkclass(config={"export":"/tmp/delta"}).exportDf(x)) (x) for x in listOfDf]
+    c = [(lambda x: class_pyspark.Sparkclass(config={}).exportDf(x)) (x) for x in listOfDf]
 
 if __name__ == '__main__':
-    main(project_dir)
+    main()
 
 
