@@ -2,20 +2,16 @@
     "spark.version": "3.1.3",
     "spark.sparkContext": [
         [
-            "spark.driver.port",
-            "37045"
-        ],
-        [
             "spark.repl.local.jars",
             "file:///home/duonglt/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///home/duonglt/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///home/duonglt/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///home/duonglt/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///home/duonglt/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///home/duonglt/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///home/duonglt/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///home/duonglt/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar"
         ],
         [
-            "spark.jars",
-            "file:///home/duonglt/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///home/duonglt/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///home/duonglt/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///home/duonglt/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///home/duonglt/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///home/duonglt/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///home/duonglt/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///home/duonglt/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar"
+            "spark.app.id",
+            "local-1661333961406"
         ],
         [
-            "spark.app.id",
-            "local-1661331409914"
+            "spark.jars",
+            "file:///home/duonglt/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///home/duonglt/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///home/duonglt/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///home/duonglt/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///home/duonglt/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///home/duonglt/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///home/duonglt/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///home/duonglt/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar"
         ],
         [
             "spark.executor.id",
@@ -23,7 +19,7 @@
         ],
         [
             "spark.app.startTime",
-            "1661331408419"
+            "1661333960101"
         ],
         [
             "spark.files",
@@ -32,6 +28,10 @@
         [
             "spark.submit.pyFiles",
             "/home/duonglt/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,/home/duonglt/.ivy2/jars/org.antlr_antlr4-4.7.jar,/home/duonglt/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,/home/duonglt/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,/home/duonglt/.ivy2/jars/org.antlr_ST4-4.0.8.jar,/home/duonglt/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,/home/duonglt/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,/home/duonglt/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar"
+        ],
+        [
+            "spark.driver.port",
+            "41283"
         ],
         [
             "spark.app.name",
@@ -54,10 +54,6 @@
             "True"
         ],
         [
-            "spark.app.initial.jar.urls",
-            "spark://192.168.100.173:37045/jars/io.delta_delta-core_2.12-1.0.0.jar,spark://192.168.100.173:37045/jars/org.antlr_antlr4-4.7.jar,spark://192.168.100.173:37045/jars/org.glassfish_javax.json-1.0.4.jar,spark://192.168.100.173:37045/jars/org.antlr_antlr4-runtime-4.7.jar,spark://192.168.100.173:37045/jars/com.ibm.icu_icu4j-58.2.jar,spark://192.168.100.173:37045/jars/org.antlr_antlr-runtime-3.5.2.jar,spark://192.168.100.173:37045/jars/org.antlr_ST4-4.0.8.jar,spark://192.168.100.173:37045/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar"
-        ],
-        [
             "spark.serializer.objectStreamReset",
             "100"
         ],
@@ -68,6 +64,10 @@
         [
             "spark.submit.deployMode",
             "client"
+        ],
+        [
+            "spark.app.initial.jar.urls",
+            "spark://192.168.100.173:41283/jars/org.antlr_antlr4-runtime-4.7.jar,spark://192.168.100.173:41283/jars/org.antlr_antlr-runtime-3.5.2.jar,spark://192.168.100.173:41283/jars/org.antlr_antlr4-4.7.jar,spark://192.168.100.173:41283/jars/org.antlr_ST4-4.0.8.jar,spark://192.168.100.173:41283/jars/org.glassfish_javax.json-1.0.4.jar,spark://192.168.100.173:41283/jars/io.delta_delta-core_2.12-1.0.0.jar,spark://192.168.100.173:41283/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,spark://192.168.100.173:41283/jars/com.ibm.icu_icu4j-58.2.jar"
         ],
         [
             "spark.driver.host",

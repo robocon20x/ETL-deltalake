@@ -300,7 +300,18 @@ class Sparkclass:
             content = json.dumps(c, sort_keys=False, indent=4, default=str)
             Sparkclass(self.config).debugCreateFile((self.config_paths[0], f"{self.config_paths[0]}/exportDelta.json"), content) 
 
+        def tableHistory(spark:SparkSession, df:DataFrame, settings:dict) -> None:
+            """ return information on table version """
+            if DeltaTable.isDeltaTable(spark, settings.get('path')) == True:
+                dt = DeltaTable.forPath(spark, settings.get('path'))
+                dt.history().show()
 
+        def tableVacuum(spark:SparkSession, df:DataFrame, settings:dict) -> None:
+            """ remove previous table versions """
+            if DeltaTable.isDeltaTable(spark, settings.get('path')) == True:
+                dt = DeltaTable.forPath(spark, settings.get('path'))
+                dt.vacuum(168) 
+        
         def tableNew(spark:SparkSession, df:DataFrame, settings:dict) -> None:
             """create a new table"""
             df.write.format("delta")\
@@ -331,8 +342,24 @@ class Sparkclass:
                 debugSession(spark)
                 # print("everything is ok")
 
+                dt = DeltaTable.forPath(spark,settings.get('path')) 
+                dt \
+                    .alias("t") \
+                    .merge( \
+                        df.alias("s"), \
+                        f"t.{settings.get('key')} = s.{settings.get('key')}" \
+                    ) \
+                    .whenNotMatchedInsertAll() \
+                    .execute()
 
-
+    def loadTables(self, spark:SparkSession, path:str, fmt:str) -> DataFrame:
+        """ load parquet or delta tables  """
+        if os.path.exists(path):
+            df = spark.read.format(fmt) \
+                .option("mergeSchema", "true") \
+                .load(path)
+            return df
+   
 
         def tableExist(spark:SparkSession, df:DataFrame, settings:dict) -> None:
             """ check if a path exists ...if a table should be newly created or data merged """
@@ -344,7 +371,8 @@ class Sparkclass:
                 # print("exists")
           
         tableExist(spark,df,settings)
-    
+        tableHistory(spark, df, settings)
+        tableVacuum(spark, df, settings)
 
     # end::exportDelta[]
 

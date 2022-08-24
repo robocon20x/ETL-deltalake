@@ -66,7 +66,17 @@ def transformData(spark:SparkSession, transactionsDf:DataFrame, customersDf:Data
         (spark, cleanCustomers(customersDf), {"format":"delta", "path":f"{path}/customers", "key":"customer_id"}), \
         (spark, cleanProducts(productsDf), {"format":"delta", "path":f"{path}/products", "key":"product_id"}) \
     ])
-   
+    l = loadDeltaTables([ \
+        (spark, f"{path}/transactions", "delta"), \
+        (spark, f"{path}/customers", "delta"), \
+        (spark, f"{path}/products", "delta") \
+    ])
+    
+    listOfDf = list(zip(l, ["transactions", "customers", "products"]))
+    createTempTables(spark, listOfDf)
+
+    df = spark.sql("SELECT * FROM transactions")
+    df.show()
 
 
 def cleanTransactions(df:DataFrame) -> DataFrame:
@@ -104,6 +114,13 @@ def createTempTables(spark:SparkSession, listOfDf:list) -> None:
 def exportResult(listOfDf:list) -> None:
     """ input is a list of tuples (dataframe, "tablename"), write to various file formats including delta lake tables """
     c = [(lambda x: class_pyspark.Sparkclass(config={}).exportDf(x)) (x) for x in listOfDf]
+
+
+def loadDeltaTables(listOfPaths:list) -> list:
+    """ load data from delta tables for various reasons like historic or additional data sources 
+        you could also include this function in our main function above rather than from our transformData function
+    """
+    return [(lambda x: class_pyspark.Sparkclass(config={}).loadTables(x[0], x[1], x[2])) (x) for x in listOfPaths]
 
 if __name__ == '__main__':
     main()
